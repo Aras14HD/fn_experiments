@@ -5,3 +5,12 @@ version = 3
 [[package]]
 name = "fn_experiments"
 version = "0.1.0"
+dependencies = [
+ "tuplex",
+]
+
+[[package]]
+name = "tuplex"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "10d7b5d3f6af26963b2de1090009ca95125900eb7dd76149fa667831a4b6fa41"
