@@ -1,7 +1,7 @@
 #![feature(fn_traits, unboxed_closures, tuple_trait)]
 
 use tuplex::*;
-use std::marker::Tuple;
+use std::{marker::Tuple, ops::{AddAssign, Deref, DerefMut}};
 struct Curry<T: PopFront + Tuple, F: FnOnce<T>> where T::Remain: PushFront<T::Front> {
     v: T::Front,
     f: F,
@@ -48,6 +48,47 @@ impl<T> FnOnce<()> for Something<T> {
     }
 }
 
+/// x(f)
+struct Reverse<T>(pub T);
+
+impl<T, F: FnOnce<(T,)>> FnOnce<(F,)> for Reverse<T> {
+    type Output = F::Output;
+    extern "rust-call" fn call_once(self, args: (F,)) -> Self::Output {
+        args.0.call_once((self.0,))
+    }
+}
+
+impl<T> AsRef<T> for Reverse<T> {
+    fn as_ref(&self) -> &T {
+        &self.0
+    }
+}
+
+impl<T> AsMut<T> for Reverse<T> {
+    fn as_mut(&mut self) -> &mut T {
+        &mut self.0
+    }
+}
+
+impl<T> From<T> for Reverse<T> {
+    fn from(value: T) -> Self {
+        Reverse(value)
+    }
+}
+
+impl<T> Deref for Reverse<T> {
+    type Target = T;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+} 
+
+impl<T> DerefMut for Reverse<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
 fn main() {
     let add = |x, y, z| x+y+z;
     let curried = curry(5, add);
@@ -55,4 +96,8 @@ fn main() {
     println!("{}", res);
     let _n = Nothing()()()()()()()()()();
     let _s = Something(6)()()()()()()();
+    let mut rev = Reverse(10);
+    rev.add_assign(1);
+    let res = rev(|x| x+5);
+    println!("{res}");
 }
