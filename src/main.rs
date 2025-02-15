@@ -128,6 +128,61 @@ impl<T> DerefMut for Reverse<T> {
     }
 }
 
+macro_rules! impl_fns_same {
+    ($args:ty, $output:ty, $name:ty, {$e:expr}) => {
+        impl FnOnce<$args> for $name {
+            type Output = $output;
+            extern "rust-call" fn call_once(self, args: $args) -> $output {
+                ($e)(self, args)
+            }
+        }
+        impl FnMut<$args> for $name {
+            extern "rust-call" fn call_mut(&mut self, args: $args) -> $output {
+                ($e)(self, args)
+            }
+        }
+        impl Fn<$args> for $name {
+            extern "rust-call" fn call(&self, args: $args) -> $output {
+                ($e)(self, args)
+            }
+        }
+    };
+}
+
+// fn variadic_default(a: u8, b: f64 = 10.0, c: usize..) {}
+fn _base_variadic_default<const N: usize>(a: u8, b: f64, c: [usize; N]) {
+    println!("Got: {a}, {b}, {c:?}");
+}
+#[allow(non_camel_case_types)]
+struct variadic_default;
+impl_fns_same!((u8,), (), variadic_default, {
+    |_, args: (u8,)| _base_variadic_default(args.0, 10.0, [])
+});
+impl_fns_same!((u8, f64,), (), variadic_default, {
+    |_, args: (u8, f64)| _base_variadic_default(args.0, args.1, [])
+});
+impl_fns_same!((u8, f64, usize), (), variadic_default, {
+    |_, args: (u8, f64, usize)| _base_variadic_default(args.0, args.1, [args.2])
+});
+impl_fns_same!((u8, f64, usize, usize), (), variadic_default, {
+    |_, args: (u8, f64, usize, usize)| _base_variadic_default(args.0, args.1, [args.2, args.3])
+});
+impl_fns_same!((u8, f64, usize, usize, usize), (), variadic_default, {
+    |_, args: (u8, f64, usize, usize, usize)| {
+        _base_variadic_default(args.0, args.1, [args.2, args.3, args.4])
+    }
+});
+impl_fns_same!(
+    (u8, f64, usize, usize, usize, usize),
+    (),
+    variadic_default,
+    {
+        |_, args: (u8, f64, usize, usize, usize, usize)| {
+            _base_variadic_default(args.0, args.1, [args.2, args.3, args.4, args.5])
+        }
+    }
+);
+
 fn main() {
     let add = |x, y, z| x + y + z;
     let curried = curry(5, add);
@@ -142,4 +197,5 @@ fn main() {
     let curried = |z| add(5, 6, z);
     let res = curried(2);
     println!("{res}");
+    variadic_default(4, 5.1, 6, 7, 8);
 }
